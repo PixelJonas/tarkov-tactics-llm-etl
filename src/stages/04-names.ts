@@ -1,8 +1,8 @@
 // Stage 4: Iconic location ingestion and cluster naming
-// Implements the source hierarchy from spec §8.5:
-//   1. Primary game-data API (extracts, switches, named positions)
-//   2. Community iconic-location labels (the-hideout)
-//   3. Synthetic identifier (fallback)
+// Every cluster gets a human-readable name. No raw IDs are ever exposed.
+// Source hierarchy per spec §8.5:
+//   1. Direct match: extract/switch/iconic label within radius -> use its name
+//   2. Proximity description: nearest landmark + cardinal direction -> "NW of Dorms"
 
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -39,7 +39,6 @@ export class NameResolver {
     const clustersContent = await readFile(clustersPath, 'utf-8');
     const spawnClusters: SpawnClusters = JSON.parse(clustersContent);
 
-    // Load all naming sources
     const apiNamedPositions = await this.loadAPINamedPositions();
     const iconicLocations = await this.loadIconicLocations();
 
@@ -54,49 +53,63 @@ export class NameResolver {
 
       const mapApiPositions = apiNamedPositions.get(mapId) || [];
       const mapIconicLabels = iconicLocations[mapId] || [];
+
+      // Build a combined pool of all named landmarks for proximity fallback
+      const allLandmarks: NamedPosition[] = [
+        ...mapApiPositions,
+        ...mapIconicLabels.map(l => ({
+          name: l.name,
+          position: l.center,
+          source: 'iconic',
+        })),
+      ];
+
       const spawnClusterNames: Record<string, { name: string; source: 'iconic_match' | 'synthetic' }> = {};
 
       for (const cluster of mapData.clusters) {
-        // Source hierarchy per §8.5:
-        // 1. Try tarkov.dev named positions (extracts, switches)
-        const apiMatch = this.findNearestNamedPosition(
-          cluster.centroid,
-          mapApiPositions,
-          this.context.config.naming.iconic_match_radius_m
-        );
+        const matchRadius = this.context.config.naming.iconic_match_radius_m;
 
-        if (apiMatch) {
+        // 1. Direct match within radius — use the landmark's name directly
+        const directMatch = this.findNearest(cluster.centroid, allLandmarks, matchRadius);
+
+        if (directMatch) {
           spawnClusterNames[cluster.cluster_id] = {
-            name: apiMatch.name,
+            name: directMatch.entry.name,
             source: 'iconic_match',
           };
-          console.log(`    ${cluster.cluster_id} -> "${apiMatch.name}" (API: ${apiMatch.source})`);
+          console.log(`    ${cluster.cluster_id} -> "${directMatch.entry.name}" (${directMatch.entry.source}, ${Math.round(directMatch.distance)}m)`);
           continue;
         }
 
-        // 2. Try community iconic labels
-        const iconicMatch = this.findNearestIconicLabel(
-          cluster.centroid,
-          mapIconicLabels,
-          this.context.config.naming.iconic_match_radius_m,
-          this.context.config.naming.layer_aware_matching
-        );
+        // 2. Proximity description — find nearest landmark at any distance,
+        //    generate "NW of Dorms" style name
+        const proximityMatch = this.findNearest(cluster.centroid, allLandmarks);
 
-        if (iconicMatch) {
+        if (proximityMatch) {
+          const direction = this.cardinalDirection(proximityMatch.entry.position, cluster.centroid);
+          const dist = Math.round(proximityMatch.distance);
+          let name: string;
+
+          if (dist < 150) {
+            name = `Near ${proximityMatch.entry.name}`;
+          } else {
+            name = `${direction} of ${proximityMatch.entry.name}`;
+          }
+
           spawnClusterNames[cluster.cluster_id] = {
-            name: iconicMatch.name,
-            source: 'iconic_match',
+            name,
+            source: 'synthetic',
           };
-          console.log(`    ${cluster.cluster_id} -> "${iconicMatch.name}" (iconic)`);
+          console.log(`    ${cluster.cluster_id} -> "${name}" (${dist}m from ${proximityMatch.entry.name})`);
           continue;
         }
 
-        // 3. Synthetic identifier (per spec: "<map>-spawn-<index>")
+        // 3. Last resort — should only happen if a map has zero extracts/switches
         spawnClusterNames[cluster.cluster_id] = {
-          name: cluster.cluster_id,
+          name: `Spawn Area ${cluster.cluster_id.split('-spawn-').pop() || '?'}`,
           source: 'synthetic',
         };
-        console.log(`    ${cluster.cluster_id} -> synthetic`);
+        console.log(`    ${cluster.cluster_id} -> fallback (no landmarks on map)`);
       }
 
       result.maps[mapId] = {
@@ -117,10 +130,6 @@ export class NameResolver {
     return result;
   }
 
-  /**
-   * Extract named positions from tarkov.dev map data (extracts, switches, boss spawns).
-   * Per §8.5 source hierarchy #1: "Primary game-data API."
-   */
   private async loadAPINamedPositions(): Promise<Map<string, NamedPosition[]>> {
     const result = new Map<string, NamedPosition[]>();
 
@@ -138,26 +147,15 @@ export class NameResolver {
 
         for (const extract of map.extracts || []) {
           if (extract.position && extract.name) {
-            positions.push({
-              name: extract.name,
-              position: extract.position,
-              source: 'extract',
-            });
+            positions.push({ name: extract.name, position: extract.position, source: 'extract' });
           }
         }
 
         for (const sw of map.switches || []) {
           if (sw.position && sw.name) {
-            positions.push({
-              name: sw.name,
-              position: sw.position,
-              source: 'switch',
-            });
+            positions.push({ name: sw.name, position: sw.position, source: 'switch' });
           }
         }
-
-        // Boss spawn locations don't have positions in the API,
-        // so we can't use them for spatial matching.
 
         result.set(map.id, positions);
       }
@@ -185,50 +183,45 @@ export class NameResolver {
     }
   }
 
-  private findNearestNamedPosition(
+  /**
+   * Find nearest named position, optionally within a max radius.
+   */
+  private findNearest(
     position: Position,
-    namedPositions: NamedPosition[],
-    maxRadius: number
-  ): NamedPosition | null {
+    landmarks: NamedPosition[],
+    maxRadius?: number
+  ): { entry: NamedPosition; distance: number } | null {
     let nearest: NamedPosition | null = null;
     let nearestDistance = Infinity;
 
-    for (const np of namedPositions) {
-      const distance = euclideanDistance(position, np.position);
-      if (distance <= maxRadius && distance < nearestDistance) {
-        nearest = np;
-        nearestDistance = distance;
+    for (const lm of landmarks) {
+      const d = euclideanDistance(position, lm.position);
+      if (d < nearestDistance && (maxRadius === undefined || d <= maxRadius)) {
+        nearest = lm;
+        nearestDistance = d;
       }
     }
 
-    return nearest;
+    return nearest ? { entry: nearest, distance: nearestDistance } : null;
   }
 
-  private findNearestIconicLabel(
-    position: Position,
-    labels: RawIconicLocation[],
-    maxRadius: number,
-    layerAware: boolean
-  ): RawIconicLocation | null {
-    let nearest: RawIconicLocation | null = null;
-    let nearestDistance = Infinity;
+  /**
+   * Compute cardinal direction from `from` to `to` using the game's XZ plane.
+   * Tarkov uses: +X = East, +Z = North (Y is vertical).
+   */
+  private cardinalDirection(from: Position, to: Position): string {
+    const dx = to.x - from.x;
+    const dz = to.z - from.z;
+    const angle = Math.atan2(dx, dz) * (180 / Math.PI); // 0 = North, 90 = East
 
-    for (const label of labels) {
-      if (layerAware) {
-        const [yMin, yMax] = label.layer_range_y;
-        if (position.y < yMin || position.y > yMax) {
-          continue;
-        }
-      }
-
-      const distance = euclideanDistance(position, label.center);
-      if (distance <= maxRadius && distance < nearestDistance) {
-        nearest = label;
-        nearestDistance = distance;
-      }
-    }
-
-    return nearest;
+    if (angle >= -22.5 && angle < 22.5) return 'N';
+    if (angle >= 22.5 && angle < 67.5) return 'NE';
+    if (angle >= 67.5 && angle < 112.5) return 'E';
+    if (angle >= 112.5 && angle < 157.5) return 'SE';
+    if (angle >= 157.5 || angle < -157.5) return 'S';
+    if (angle >= -157.5 && angle < -112.5) return 'SW';
+    if (angle >= -112.5 && angle < -67.5) return 'W';
+    return 'NW';
   }
 }
 
