@@ -1,0 +1,38 @@
+{
+  "spawn_clustering": {
+    "default_proximity_threshold_m": 75,
+    "max_clusters_per_map": 4,
+    "min_clusters_per_map": 1,
+    "per_map_overrides": {
+      "factory": {
+        "proximity_threshold_m": 25
+      },
+      "streets-of-tarkov": {
+        "proximity_threshold_m": 150
+      }
+    }
+  },
+  "loot_probability": {
+    "uniform_prior_fallback_enabled": true
+  },
+  "naming": {
+    "iconic_match_radius_m": 50,
+    "layer_aware_matching": true
+  },
+  "llm": {
+    "enabled": false,
+    "prompt_template_path": "src/llm/prompts/quest-enrichment.md",
+    "expected_schema_path": "src/schemas/quest-enhancements.schema.json"
+  },
+  "validation": {
+    "fail_on_unmatched_item_ids": false,
+    "fail_on_missing_iconic_labels": false,
+    "max_publish_size_mb": 50
+  },
+  "sources": {
+    "spt_aki_repo": "https://github.com/sp-tarkov/server",
+    "tarkov_dev_graphql": "https://api.tarkov.dev/graphql",
+    "the_hideout_repo": "https://github.com/the-hideout/tarkov-dev",
+    "cache_ttl_hours": 24
+  }
+}

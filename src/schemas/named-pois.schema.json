@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Named POIs",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "maps"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "maps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "iconic_labels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "center", "layer_range_y", "source"],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "center": {
+                  "$ref": "#/definitions/position"
+                },
+                "layer_range_y": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "source": {
+                  "type": "string",
+                  "const": "the-hideout/tarkov-dev"
+                }
+              }
+            }
+          },
+          "spawn_cluster_names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["name", "source"],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": ["iconic_match", "synthetic"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "position": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}

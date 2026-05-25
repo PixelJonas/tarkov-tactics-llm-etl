@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Loot Probabilities",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "game_patch", "maps"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "game_patch": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+$"
+    },
+    "maps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "containers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["item_id", "probability", "confidence"],
+                    "properties": {
+                      "item_id": {
+                        "type": "string"
+                      },
+                      "probability": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": ["spt_direct", "uniform_prior", "id_unmatched", "reconciled"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "loose_loot_regions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["region_id", "center", "radius", "items"],
+              "properties": {
+                "region_id": {
+                  "type": "string"
+                },
+                "center": {
+                  "$ref": "#/definitions/position"
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["item_id", "probability", "confidence"],
+                    "properties": {
+                      "item_id": {
+                        "type": "string"
+                      },
+                      "probability": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": ["spt_direct", "uniform_prior", "id_unmatched", "reconciled"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "position": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}

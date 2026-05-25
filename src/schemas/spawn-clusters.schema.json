@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Spawn Clusters",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "config", "maps"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config": {
+      "type": "object",
+      "required": ["max_clusters_per_map", "min_clusters_per_map", "default_proximity_threshold_m"],
+      "properties": {
+        "max_clusters_per_map": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_clusters_per_map": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "default_proximity_threshold_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "maps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["proximity_threshold_used_m", "clusters"],
+        "properties": {
+          "proximity_threshold_used_m": {
+            "type": "number",
+            "minimum": 0
+          },
+          "clusters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["cluster_id", "centroid", "radius_m", "member_count", "zone_names", "members"],
+              "properties": {
+                "cluster_id": {
+                  "type": "string"
+                },
+                "centroid": {
+                  "$ref": "#/definitions/position"
+                },
+                "radius_m": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "member_count": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "zone_names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "members": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["position", "zone_name"],
+                    "properties": {
+                      "position": {
+                        "$ref": "#/definitions/position"
+                      },
+                      "zone_name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "position": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Quest Enhancements",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "llm_model", "quests"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "llm_model": {
+      "type": "string"
+    },
+    "quests": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["enrichment_status", "objectives"],
+        "properties": {
+          "enrichment_status": {
+            "type": "string",
+            "enum": ["complete", "schema_invalid", "skipped", "review_pending"]
+          },
+          "objectives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["objective_id", "constraints", "source_text"],
+              "properties": {
+                "objective_id": {
+                  "type": "string"
+                },
+                "constraints": {
+                  "type": "object",
+                  "properties": {
+                    "maps": {
+                      "type": ["array", "null"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "zone": {
+                      "type": ["string", "null"]
+                    },
+                    "body_parts": {
+                      "type": ["array", "null"],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "weapon_specific_item": {
+                      "type": ["string", "null"]
+                    },
+                    "weapon_class": {
+                      "type": ["string", "null"]
+                    },
+                    "weapon_mods_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "wearing_required": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "not_wearing": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "distance_min_m": {
+                      "type": ["number", "null"],
+                      "minimum": 0
+                    },
+                    "distance_max_m": {
+                      "type": ["number", "null"],
+                      "minimum": 0
+                    },
+                    "time_of_day": {
+                      "type": ["string", "null"]
+                    },
+                    "shot_type": {
+                      "type": ["string", "null"]
+                    },
+                    "health_state": {
+                      "type": ["string", "null"]
+                    },
+                    "required_keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "source_text": {
+                  "type": "string"
+                },
+                "reviewed_by": {
+                  "type": ["string", "null"]
+                },
+                "reviewed_at": {
+                  "type": ["string", "null"],
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

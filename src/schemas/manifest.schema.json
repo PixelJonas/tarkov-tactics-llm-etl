@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Manifest",
+  "type": "object",
+  "required": ["schema_version", "version", "game_patch", "generated_at", "sources", "llm", "files"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+\\+\\d{8}T\\d{4}Z$"
+    },
+    "game_patch": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sources": {
+      "type": "object",
+      "required": ["spt_aki_commit", "tarkov_dev_query_time", "the_hideout_commit"],
+      "properties": {
+        "spt_aki_commit": {
+          "type": "string"
+        },
+        "tarkov_dev_query_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "the_hideout_commit": {
+          "type": "string"
+        }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "required": ["model", "stage_5_completed"],
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "stage_5_completed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "sha256", "size_bytes"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

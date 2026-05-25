@@ -1,0 +1,40 @@
+{
+  "name": "tarkov-tactics-etl",
+  "version": "1.0.0",
+  "description": "Data pipeline for Tarkov Tactics - extracts game data, enriches with LLM, and publishes JSON artifacts",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "stage:fetch": "tsx src/stages/01-fetch.ts",
+    "stage:loot": "tsx src/stages/02-loot.ts",
+    "stage:spawns": "tsx src/stages/03-spawns.ts",
+    "stage:names": "tsx src/stages/04-names.ts",
+    "stage:quests": "tsx src/stages/05-quests-llm.ts",
+    "stage:validate": "tsx src/stages/06-validate-manifest.ts",
+    "schema:validate": "tsx src/lib/schema-validator.ts",
+    "etl:run": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "eslint": "^8.55.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
