@@ -88,12 +88,14 @@ export class NameResolver {
         if (proximityMatch) {
           const direction = this.cardinalDirection(proximityMatch.entry.position, cluster.centroid);
           const dist = Math.round(proximityMatch.distance);
+          const landmarkName = proximityMatch.entry.name;
           let name: string;
 
           if (dist < 150) {
-            name = `Near ${proximityMatch.entry.name}`;
+            // Avoid "Near Near Kamchatskaya Arch" when the landmark already starts with "Near"
+            name = landmarkName.startsWith('Near ') ? landmarkName : `Near ${landmarkName}`;
           } else {
-            name = `${direction} of ${proximityMatch.entry.name}`;
+            name = `${direction} of ${landmarkName}`;
           }
 
           spawnClusterNames[cluster.cluster_id] = {
